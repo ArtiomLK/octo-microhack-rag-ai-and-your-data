@@ -1,4 +1,4 @@
-<!-- 
+<!--
 page_type: sample
 languages:
 - azdeveloper
@@ -16,10 +16,14 @@ description: GPT-RAG core is a Retrieval-Augmented Generation pattern running in
 ![Alt text](docs/Microhack%20OCTO%20logo.png "Microsoft Americas Office of the CTO")
 
 # Microhack - RAG AI & Your Data
+
+## [Solutions](./solutions/readme.md)
+
 ## Presented by Microsoft Americas Office of the CTO
+
 Originally from [GPT-RAG](https://github.com/Azure/gpt-rag)
 
-The **RAG pattern** enables businesses to use the reasoning capabilities of LLMs, using their existing models to process and generate responses based on new data. RAG facilitates periodic data updates without the need for fine-tuning, thereby streamlining the integration of LLMs into businesses. 
+The **RAG pattern** enables businesses to use the reasoning capabilities of LLMs, using their existing models to process and generate responses based on new data. RAG facilitates periodic data updates without the need for fine-tuning, thereby streamlining the integration of LLMs into businesses.
 
 The **Enterprise RAG** Solution Accelerator (GPT-RAG) offers a robust architecture tailored for enterprise-grade deployment of the RAG pattern. It ensures grounded responses and is built on Zero-trust security and Responsible AI, ensuring availability, scalability, and auditability. Ideal for organizations transitioning from exploration and PoC stages to full-scale production and MVPs.
 
@@ -35,7 +39,7 @@ GPT-RAG follows a modular approach, consisting of three components, each with a 
 
 <!-- * [Teams-BOT](https://github.com/Azure/gpt-rag-bot) Constructed using Azure BOT Services, this platform enables users to engage with the Orchestrator seamlessly through the Microsoft Teams interface. -->
 
-<!-- 
+<!--
 Removing temporarily while not finished
 ## GPT-RAG Integration HUB
 * [SQL Integration](https://github.com/Azure/gpt-rag-int-sql) Connect the GPT-RAG Infrastructure to SQL using NL2SQL. -->
@@ -58,21 +62,20 @@ If you want to learn more about the RAG Pattern and GPT-RAG architecture.
 
 Learn how to **quickly set up** the basic architecture for scenarios without network isolation. [Click the link to proceed](#getting-started).
 
-
 ## Getting Started
 
 This guide will walk you through the deployment process of Enterprise RAG. Before beginning the deployment, please ensure you have prepared all the necessary tools and services as outlined in the **Pre-requisites** section.
 
 **Pre-requisites**
 
- - Azure Developer CLI: [Download azd](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows) 
-   - Ensure the correct OS is selected
- - Powershell 7+ with AZ module (Windows only): [Powershell](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-windows?view=powershell-7.4#installing-the-msi-package), [AZ Module](https://learn.microsoft.com/en-us/powershell/azure/what-is-azure-powershell?view=azps-11.6.0#the-az-powershell-module)
- - Git: [Download Git](https://git-scm.com/downloads)
- - Node.js 16+ [windows/mac](https://nodejs.dev/en/download/)  [linux/wsl](https://nodejs.dev/en/download/package-manager/)
- - Python 3.11: [Download Python](https://www.python.org/downloads/release/python-3118/)
- - Initiate an [Azure AI services creation](https://portal.azure.com/#create/Microsoft.CognitiveServicesAllInOne) and agree to the Responsible AI terms **
-   - ** If you have not created an Azure AI service resource in the subscription before
+* Azure Developer CLI: [Download azd](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows)
+  * Ensure the correct OS is selected
+* Powershell 7+ with AZ module (Windows only): [Powershell](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-windows?view=powershell-7.4#installing-the-msi-package), [AZ Module](https://learn.microsoft.com/en-us/powershell/azure/what-is-azure-powershell?view=azps-11.6.0#the-az-powershell-module)
+* Git: [Download Git](https://git-scm.com/downloads)
+* Node.js 16+ [windows/mac](https://nodejs.dev/en/download/)  [linux/wsl](https://nodejs.dev/en/download/package-manager/)
+* Python 3.11: [Download Python](https://www.python.org/downloads/release/python-3118/)
+* Initiate an [Azure AI services creation](https://portal.azure.com/#create/Microsoft.CognitiveServicesAllInOne) and agree to the Responsible AI terms **
+  * ** If you have not created an Azure AI service resource in the subscription before
 
 ### Basic Architecture Deployment
 
@@ -81,14 +84,14 @@ For quick demonstrations or proof-of-concept projects without network isolation 
 
 The deployment procedure is quite simple, just install the prerequisites mentioned above and follow these four steps using [Azure Developer CLI (azd)](https://aka.ms/azure-dev/install) in a terminal:
 
-
 **1** Download the Repository:
 
 ```sh
 azd init
 ```
 
-**1.a** Give the environment a unique name. This will be used to create your resources. For example, _cowboy-hats_ would create resource group _rg-cowboy-hats_.
+**1.a** Give the environment a unique name. This will be used to create your resources. For example, *cowboy-hats* would create resource group *rg-cowboy-hats*.
+
 ```sh
 Enter a new environment name: some-name-here
 ```
@@ -106,6 +109,7 @@ azd auth login
 ```sh
 az login
 ```
+
 **2.c** Select your Azure Subscription from list.
 
 **3** Start Building the infrastructure and components deployment:
@@ -113,11 +117,12 @@ az login
 ```sh
 azd up
 ```
+
 **3.a** Select your Azure Subscription from list.
 
-**3.b** Select Azure region. _Recommended: East US (eastus)_
+**3.b** Select Azure region. *Recommended: East US (eastus)*
 
-**4** Add source documents to object storage from _/datasources_ directory.
+**4** Add source documents to object storage from */datasources* directory.
 
 Upload your documents to the 'documents' folder located in the storage account. The name of this account should start with 'strag'. This is the default storage account, as shown in the sample image below.
 
@@ -134,13 +139,13 @@ Upload your documents to the 'documents' folder located in the storage account. 
 The standard deployment process sets up Azure resources and deploys the accelerator components with a standard configuration. To tailor the deployment to your specific needs, follow the steps in the [Custom Deployment](docs/CUSTOMIZATIONS.md) section for further customization options.
 
 ### Integrate with Additional Data Sources
-  
+
 Expand your data retrieval capabilities by integrating new data sources such as Bing Custom Search, SQL Server, and Teradata. For detailed instructions, refer to the [AI Integration Hub](docs/AI_INTEGRATION_HUB.md) page.
 
 ### Multi-Environment Deployment
 
 Once you've successfully deployed the GPT-RAG solution as a proof of concept and you're ready to formalize the deployment using a proper CI/CD process to accelerate your deployment to production, refer to the multi-environment deployment guides for either [Azure DevOps](./docs/AZDO-SETUP.md) or [GitHub](./docs/GH-SETUP.md).
- 
+
 ### Troubleshoot Deployment Issues
 
 If you encounter any errors during the deployment process, consult the [Troubleshooting](docs/TROUBLESHOOTING.md) page for guidance on resolving common issues.
@@ -169,8 +174,8 @@ Thank you for your support and contributions!
 
 ## Trademarks
 
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
-trademarks or logos is subject to and must follow 
+This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft
+trademarks or logos is subject to and must follow
 [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
 Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
 Any use of third-party trademarks or logos are subject to those third-party's policies.

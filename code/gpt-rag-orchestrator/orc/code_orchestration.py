@@ -2,16 +2,17 @@
 import json
 import logging
 import os
-import semantic_kernel as sk
 import time
-from orc.plugins.Conversation.Triage.wrapper import triage
-from orc.plugins.ResponsibleAI.wrapper import fairness
-from semantic_kernel.functions.kernel_arguments import KernelArguments
-from semantic_kernel.functions import KernelPlugin
-from shared.util import call_semantic_function, get_chat_history_as_messages, get_message, get_last_messages,get_possitive_int_or_default
-from shared.util import get_blocked_list, create_kernel, get_usage_tokens, escape_xml_characters,get_secret
 import asyncio
 import xml.sax.saxutils as saxutils
+
+from semantic_kernel.kernel import Kernel
+from semantic_kernel.functions import KernelArguments, KernelPlugin
+
+from orc.plugins.Conversation.Triage.wrapper import triage
+from orc.plugins.ResponsibleAI.wrapper import fairness
+from shared.util import call_semantic_function, get_chat_history_as_messages, get_message, get_last_messages, get_possitive_int_or_default
+from shared.util import get_blocked_list, create_kernel, get_usage_tokens, escape_xml_characters, get_secret
 
 # logging level
 
@@ -30,8 +31,6 @@ RESPONSIBLE_AI_CHECK = os.environ.get("RESPONSIBLE_AI_CHECK") or "true"
 RESPONSIBLE_AI_CHECK = True if RESPONSIBLE_AI_CHECK.lower() == "true" else False
 SECURITY_HUB_CHECK = os.environ.get("SECURITY_HUB_CHECK") or "false"
 SECURITY_HUB_CHECK = True if SECURITY_HUB_CHECK.lower() == "true" else False
-SECURITY_HUB_AUDIT = os.environ.get("SECURITY_HUB_AUDIT") or "false"
-SECURITY_HUB_AUDIT = True if SECURITY_HUB_AUDIT.lower() == "true" else False
 CONVERSATION_METADATA = os.environ.get("CONVERSATION_METADATA") or "true"
 CONVERSATION_METADATA = True if CONVERSATION_METADATA.lower() == "true" else False
 
@@ -52,13 +51,13 @@ APIM_ENABLED = True if APIM_ENABLED.lower() == "true" else False
 if SECURITY_HUB_CHECK:
     SECURITY_HUB_THRESHOLDS=[get_possitive_int_or_default(os.environ.get("SECURITY_HUB_HATE_THRESHHOLD"), 0),get_possitive_int_or_default(os.environ.get("SECURITY_HUB_SELFHARM_THRESHHOLD"), 0),get_possitive_int_or_default(os.environ.get("SECURITY_HUB_SEXUAL_THRESHHOLD"), 0),get_possitive_int_or_default(os.environ.get("SECURITY_HUB_VIOLENCE_THRESHHOLD"), 0)]
 
-async def get_answer(history, security_ids,conversation_id):
+async def get_answer(history,client_principal_id):
 
     #############################
     # INITIALIZATION
     #############################
 
-    #initialize variables    
+    #initialize variables
 
     answer_dict = {}
     prompt = "The prompt is only recorded for question-answering intents"
@@ -70,7 +69,7 @@ async def get_answer(history, security_ids,conversation_id):
     detected_language = ""
     bypass_nxt_steps = False  # flag to bypass unnecessary steps
     blocked_list = []
-    security_check=""
+
     # conversation metadata
     conversation_plugin_answer = ""
     conversation_history_summary = ''
@@ -96,26 +95,27 @@ async def get_answer(history, security_ids,conversation_id):
     arguments["history"] = json.dumps(get_last_messages(messages, CONVERSATION_MAX_HISTORY), ensure_ascii=False)
     arguments["previous_answer"] = messages[-2]['content'] if len(messages) > 1 else ""
     # import RAG plugins
-    conversationPluginTask = asyncio.create_task(asyncio.to_thread(kernel.add_plugin, KernelPlugin.from_directory(parent_directory=PLUGINS_FOLDER,plugin_name="Conversation")))
-    retrievalPluginTask = asyncio.create_task(asyncio.to_thread(kernel.add_plugin, KernelPlugin.from_directory(parent_directory=PLUGINS_FOLDER,plugin_name="Retrieval")))
-    raiNativePluginTask = asyncio.create_task(asyncio.to_thread(kernel.add_plugin, KernelPlugin.from_directory(parent_directory=f"{PLUGINS_FOLDER}/ResponsibleAI/Native",plugin_name="Filters")))
+    conversationPluginTask = asyncio.create_task(asyncio.to_thread(kernel.add_plugin, KernelPlugin.from_directory(parent_directory=PLUGINS_FOLDER, plugin_name="Conversation")))
+    retrievalPluginTask = asyncio.create_task(asyncio.to_thread(kernel.add_plugin, KernelPlugin.from_directory(parent_directory=PLUGINS_FOLDER, plugin_name="Retrieval")))
+    # temporary disabled
+    # raiNativePluginTask = asyncio.create_task(asyncio.to_thread(kernel.add_plugin, KernelPlugin.from_directory(parent_directory=f"{PLUGINS_FOLDER}/ResponsibleAI/Native", plugin_name="Filters")))
     if(SECURITY_HUB_CHECK):
-        securityPluginTask = asyncio.create_task(asyncio.to_thread(kernel.add_plugin, KernelPlugin.from_directory(parent_directory=PLUGINS_FOLDER,plugin_name="Security")))
+        securityPluginTask = asyncio.create_task(asyncio.to_thread(kernel.add_plugin, KernelPlugin.from_directory(parent_directory=PLUGINS_FOLDER, plugin_name="Security")))
     if(RESPONSIBLE_AI_CHECK):
-        raiPluginTask = asyncio.create_task(asyncio.to_thread(kernel.add_plugin,KernelPlugin.from_directory(parent_directory=f"{PLUGINS_FOLDER}/ResponsibleAI",plugin_name="Semantic")))
+        raiPluginTask = asyncio.create_task(asyncio.to_thread(kernel.add_plugin, KernelPlugin.from_directory(parent_directory=f"{PLUGINS_FOLDER}/ResponsibleAI", plugin_name="Semantic")))
 
     #############################
     # GUARDRAILS (QUESTION)
     #############################
-    
-    # AOAI Content filter validator
-    raiNativePlugin = await raiNativePluginTask
-    filterResult = await kernel.invoke(raiNativePlugin["ContentFliterValidator"], KernelArguments(input=ask,apim_key=apim_key))
-    if not (filterResult.value.passed):
-        logging.info(f"[code_orchest] filtered content found in question: {ask}.")
-        answer = get_message('BLOCKED_ANSWER')
-        answer_generated_by = 'content_filters_check'
-        bypass_nxt_steps = True
+
+    # temporary disabled
+    # raiNativePlugin= await raiNativePluginTask
+    # filterResult = await kernel.invoke(raiNativePlugin["ContentFliterValidator"], KernelArguments(input=ask,apim_key=apim_key))
+    # if not ('PASSED' in filterResult.value):
+    #     logging.info(f"[code_orchest] filtered content found in question: {ask}.")
+    #     answer = get_message('BLOCKED_ANSWER')
+    #     answer_generated_by = 'content_filters_check'
+    #     bypass_nxt_steps = True
 
     if BLOCKED_LIST_CHECK:
         logging.debug(f"[code_orchest] blocked list check.")
@@ -133,9 +133,8 @@ async def get_answer(history, security_ids,conversation_id):
             logging.error(f"[code_orchest] could not get blocked list. {e}")
     response_time =  round(time.time() - init_time,2)
     logging.info(f"[code_orchest] finished content filter and blocklist check. {response_time} seconds.")
-    conversationPlugin= await conversationPluginTask
 
-    if SECURITY_HUB_CHECK and not bypass_nxt_steps:
+    if SECURITY_HUB_CHECK and not APIM_ENABLED and not bypass_nxt_steps:
             try:
                 logging.info(f"[code_orchest] checking question with security hub. question: {ask[:50]}")
                 start_time = time.time()
@@ -155,34 +154,37 @@ async def get_answer(history, security_ids,conversation_id):
                 any_blocklists_match = len(check_details.get("blocklistsMatch", [])) > 0
                 if not all_passed or not all_below_threshold or any_blocklists_match:
                     logging.error(f"[code_orchest] failed security hub question checks. Details: {check_details}.")
-                    answer=get_message('BLOCKED_ANSWER')
+                    function_result = await call_semantic_function(kernel, conversationPlugin["NotInSourcesAnswer"], arguments)
+                    answer = str(function_result)
                     answer_dict['security_hub'] = 1
                     answer_generated_by = "security_hub"
                     bypass_nxt_steps = True
                 else:
                     answer_dict['security_hub'] = 5
-                
+
                 response_time = round(time.time() - start_time, 2)
                 logging.info(f"[code_orchest] finished security hub checks. {response_time} seconds.")
             except Exception as e:
-                logging.error(f"[code_orchest] could not execute security hub checks. {e}")  
+                logging.error(f"[code_orchest] could not execute security hub checks. {e}")
                 function_result = await call_semantic_function(kernel, conversationPlugin["NotInSourcesAnswer"], arguments)
                 answer = str(function_result)
                 answer_dict['security_hub'] = 1
                 answer_generated_by = "security_hub"
-                bypass_nxt_steps = True     
+                bypass_nxt_steps = True
     #############################
     # RAG-FLOW
     #############################
+
     if not bypass_nxt_steps:
 
         try:
             # detect language
             logging.debug(f"[code_orchest] detecting language")
             start_time = time.time()
+            conversationPlugin= await conversationPluginTask
             function_result = await call_semantic_function(kernel, conversationPlugin["DetectLanguage"], arguments)
             prompt_tokens += get_usage_tokens(function_result, 'prompt')
-            completion_tokens += get_usage_tokens(function_result, 'completion')            
+            completion_tokens += get_usage_tokens(function_result, 'completion')
             detected_language = str(function_result)
             arguments["language"] = detected_language
             response_time = round(time.time() - start_time,2)
@@ -194,7 +196,7 @@ async def get_answer(history, security_ids,conversation_id):
             if arguments["history"] != '[]':
                 function_result = await call_semantic_function(kernel, conversationPlugin["ConversationSummary"], arguments)
                 prompt_tokens += get_usage_tokens(function_result, 'prompt')
-                completion_tokens += get_usage_tokens(function_result, 'completion')            
+                completion_tokens += get_usage_tokens(function_result, 'completion')
                 conversation_history_summary =  str(function_result)
             else:
                 conversation_history_summary = ""
@@ -214,19 +216,19 @@ async def get_answer(history, security_ids,conversation_id):
             logging.info(f"[code_orchest] finished checking intents: {intents}. {response_time} seconds.")
 
             # Handle question answering intent
-            if set(intents).intersection({"follow_up", "question_answering"}):         
-    
+            if set(intents).intersection({"follow_up", "question_answering"}):
+
                 search_query = triage_dict['search_query'] if triage_dict['search_query'] != '' else ask
                 search_sources= ""
                 bing_sources=""
                 #run search retrieval function
                 retrievalPlugin= await retrievalPluginTask
                 if(SEARCH_RETRIEVAL):
-                    search_function_result = await kernel.invoke(retrievalPlugin["VectorIndexRetrieval"], KernelArguments(input=search_query,apim_key=apim_key,security_ids=security_ids))
+                    search_function_result = await kernel.invoke(retrievalPlugin["VectorIndexRetrieval"], KernelArguments(input=search_query,apim_key=apim_key,client_principal_id=client_principal_id))
                     formatted_sources = search_function_result.value[:100].replace('\n', ' ')
                     escaped_sources = escape_xml_characters(search_function_result.value)
                     search_sources=escaped_sources
-                    
+
                 #run bing retrieval function
                 if(BING_RETRIEVAL):
                     if APIM_ENABLED:
@@ -238,8 +240,7 @@ async def get_answer(history, security_ids,conversation_id):
                     formatted_sources = bing_function_result.value[:100].replace('\n', ' ')
                     escaped_sources = escape_xml_characters(bing_function_result.value)
                     bing_sources=escaped_sources
-                
-                
+
                 if(RETRIEVAL_PRIORITY=="search"):
                     sources=search_sources+bing_sources
                 else:
@@ -247,7 +248,7 @@ async def get_answer(history, security_ids,conversation_id):
                 arguments["sources"] = sources
                 # Generate the answer augmented by the retrieval
                 logging.info(f"[code_orchest] generating bot answer. ask: {ask}")
-                start_time = time.time()                                                          
+                start_time = time.time()
                 arguments["history"] = json.dumps(messages[:-1], ensure_ascii=False) # update context with full history
                 function_result = await call_semantic_function(kernel, conversationPlugin["Answer"], arguments)
                 answer =  str(function_result)
@@ -256,7 +257,7 @@ async def get_answer(history, security_ids,conversation_id):
                 prompt_tokens += get_usage_tokens(function_result, 'prompt')
                 completion_tokens += get_usage_tokens(function_result, 'completion')
                 prompt = str(function_result.metadata['messages'][0])
-                response_time =  round(time.time() - start_time,2)              
+                response_time =  round(time.time() - start_time,2)
                 logging.info(f"[code_orchest] finished generating bot answer. {response_time} seconds. {answer[:100]}.")
 
             # Handle general intents
@@ -264,7 +265,7 @@ async def get_answer(history, security_ids,conversation_id):
                 answer = triage_dict['answer']
                 answer_generated_by = "conversation_plugin_triage"
                 logging.info(f"[code_orchest] triage answer: {answer}")
-                
+
             elif "greeting" in intents:
                 answer = triage_dict['answer']
                 answer_generated_by = "conversation_plugin_triage"
@@ -273,7 +274,7 @@ async def get_answer(history, security_ids,conversation_id):
             elif intents == ["none"]:
                 logging.info(f"[code_orchest] No intent found, review Triage function.")
                 answer = get_message('NO_INTENT_ANSWER')
-                answer_generated_by = "no_intent_found_check"                
+                answer_generated_by = "no_intent_found_check"
                 bypass_nxt_steps = True
 
         except Exception as e:
@@ -299,18 +300,18 @@ async def get_answer(history, security_ids,conversation_id):
     if GROUNDEDNESS_CHECK and set(intents).intersection({"follow_up", "question_answering"}) and not bypass_nxt_steps:
             try:
                 logging.info(f"[code_orchest] checking if it is grounded. answer: {answer[:50]}")
-                groundness_time = time.time()            
-                arguments["answer"] = saxutils.escape(answer)                      
+                groundness_time = time.time()
+                arguments["answer"] = saxutils.escape(answer)
                 function_result = await call_semantic_function(kernel, conversationPlugin["IsGrounded"], arguments)
                 grounded =  str(function_result)
                 prompt_tokens += get_usage_tokens(function_result, 'prompt')
-                completion_tokens += get_usage_tokens(function_result, 'completion')            
-                logging.info(f"[code_orchest] is it grounded? {grounded}.")  
+                completion_tokens += get_usage_tokens(function_result, 'completion')
+                logging.info(f"[code_orchest] is it grounded? {grounded}.")
                 if grounded.lower() == 'no':
                     logging.info(f"[code_orchest] ungrounded answer: {answer}")
                     function_result = await call_semantic_function(kernel, conversationPlugin["NotInSourcesAnswer"], arguments)
                     prompt_tokens += get_usage_tokens(function_result, 'prompt')
-                    completion_tokens += get_usage_tokens(function_result, 'completion')            
+                    completion_tokens += get_usage_tokens(function_result, 'completion')
                     answer =  str(function_result)
                     answer_dict['gpt_groundedness'] = 1
                     answer_generated_by = "gpt_groundedness_check"
@@ -320,12 +321,12 @@ async def get_answer(history, security_ids,conversation_id):
                 response_time =  round(time.time() - groundness_time,2)
                 logging.info(f"[code_orchest] finished checking if it is grounded. {response_time} seconds.")
             except Exception as e:
-                logging.error(f"[code_orchest] could not check answer is grounded. {e}")           
+                logging.error(f"[code_orchest] could not check answer is grounded. {e}")
 
     if RESPONSIBLE_AI_CHECK and set(intents).intersection({"follow_up", "question_answering"}) and not bypass_nxt_steps:
             try:
                 logging.info(f"[code_orchest] checking responsible AI (fairness). answer: {answer[:50]}")
-                start_time = time.time()            
+                start_time = time.time()
                 arguments["answer"] = saxutils.escape(answer)
                 raiPlugin= await raiPluginTask
                 fairness_dict = await fairness(kernel, raiPlugin, arguments)
@@ -342,8 +343,8 @@ async def get_answer(history, security_ids,conversation_id):
                 logging.info(f"[code_orchest] finished checking responsible AI (fairness). {response_time} seconds.")
             except Exception as e:
                 logging.error(f"[code_orchest] could not check responsible AI (fairness). {e}")
-                
-    if SECURITY_HUB_CHECK and set(intents).intersection({"follow_up", "question_answering"}) and not bypass_nxt_steps:
+
+    if SECURITY_HUB_CHECK and not APIM_ENABLED and set(intents).intersection({"follow_up", "question_answering"}) and not bypass_nxt_steps:
             try:
                 logging.info(f"[code_orchest] checking answer with security hub. answer: {answer[:50]}")
                 start_time = time.time()
@@ -373,7 +374,7 @@ async def get_answer(history, security_ids,conversation_id):
                     bypass_nxt_steps = True
                 else:
                     answer_dict['security_hub'] = 5
-                
+
                 response_time = round(time.time() - start_time, 2)
                 logging.info(f"[code_orchest] finished answer security hub checks. {response_time} seconds.")
             except Exception as e:
@@ -392,10 +393,7 @@ async def get_answer(history, security_ids,conversation_id):
         answer_dict["prompt_tokens"] = prompt_tokens
         answer_dict["completion_tokens"] = completion_tokens
 
-    if SECURITY_HUB_AUDIT:
-        logging.info(f"[code_orchest] security hub audit.")
-        await kernel.invoke(securityPlugin["Auditing"], KernelArguments(question=ask, answer=answer, sources=sources,security_hub_key=security_hub_key,conversation_id=conversation_id,security_checks=str(security_check)))
-        
+
     answer_dict["prompt"] = prompt
     answer_dict["sources"] = sources.replace('[', '{').replace(']', '}')
 

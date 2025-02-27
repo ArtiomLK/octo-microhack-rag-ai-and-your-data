@@ -21,4 +21,16 @@ az account show
 
 # Start building the infrastructure and components deployment:
 azd up
+
+# azd show the current resources
+azd show
+
+# Delete the resources if required
+# azd down
 ```
+
+## Additional Information
+
+- [Region Selection | gpt-4o, 2024-05-13][1]
+
+[1]: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models?tabs=global-standard%2Cstandard-chat-completions#standard-models-by-endpoint

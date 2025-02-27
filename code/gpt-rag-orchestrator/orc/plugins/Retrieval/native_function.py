@@ -154,7 +154,7 @@ class Retrieval:
                     body["queryType"] = "semantic"
                     body["semanticConfiguration"] = AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
 
-                body["filter"] = search_filter
+                # body["filter"] = search_filter
 
                 logging.debug(f"[ai_search] search filter: {search_filter}")
 
@@ -176,6 +176,9 @@ class Retrieval:
                     'Authorization': f'Bearer {azureSearchKey}'
                 }
                     search_endpoint = f"https://{AZURE_SEARCH_SERVICE}.search.windows.net/indexes/{AZURE_SEARCH_INDEX}/docs/search?api-version={AZURE_SEARCH_API_VERSION}"
+                    logging.info(f"[sk_retrieval] querying azure ai search. search query: {search_query}")
+                    logging.info(f"Search endpoint: {search_endpoint}")
+                    logging.info(f"Search body: {body}")
                 start_time = time.time()
                 async with aiohttp.ClientSession() as session:
                     if APIM_ENABLED:
